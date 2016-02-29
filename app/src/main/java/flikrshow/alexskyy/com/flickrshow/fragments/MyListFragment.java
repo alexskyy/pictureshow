@@ -8,6 +8,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,12 @@ import flikrshow.alexskyy.com.flickrshow.FlickrManager;
 import flikrshow.alexskyy.com.flickrshow.R;
 import flikrshow.alexskyy.com.flickrshow.adapters.MetadataHolder;
 import flikrshow.alexskyy.com.flickrshow.adapters.MyPhotoAdapter;
+import rx.Observable;
+import rx.Observer;
+import rx.Subscription;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Func0;
+import rx.schedulers.Schedulers;
 
 public class MyListFragment extends android.app.Fragment {
 
@@ -31,6 +38,7 @@ public class MyListFragment extends android.app.Fragment {
     private RecyclerView mRList;
     private MyPhotoAdapter mAdapter;
     private Handler mHandler;
+    private Subscription _subscription;
 
     public static Fragment newInstance() {
         return newInstance("Cats");
@@ -42,6 +50,14 @@ public class MyListFragment extends android.app.Fragment {
         args.putString(ARG_1, searchKey);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (_subscription != null) {
+            _subscription.unsubscribe();
+        }
     }
 
     @Override
@@ -98,12 +114,59 @@ public class MyListFragment extends android.app.Fragment {
     }
 
     public void searchForPhotos(final String s) {
-        new Thread(new Runnable() {
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                FlickrManager.searchImagesByTag(mHandler, getActivity(), s);
+//            }
+//        }).start();
+        _subscription = _getObservable(s)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(_getObserver());
+    }
+
+    private Observer<List<MetadataHolder>> _getObserver() {
+        return new Observer<List<MetadataHolder>>() {
             @Override
-            public void run() {
-                FlickrManager.searchImagesByTag(mHandler, getActivity(), s);
+            public void onCompleted() {
+                Log.wtf("iii","onCompleted");
             }
-        }).start();
+
+            @Override
+            public void onError(Throwable e) {
+                Log.wtf("iii","onError: "+e.toString());
+            }
+
+            @Override
+            public void onNext(List<MetadataHolder> metaData) {
+                Log.wtf("iii","onNext");
+                boolean firstThumb = true;
+                for (MetadataHolder photo : metaData) {
+                    Log.wtf("iii","onNext-"+photo.toString());
+                    mAdapter.add(photo);
+                    new FlickrManager.GetThumbnailsThread(mHandler, photo).start();
+                    if ( firstThumb ){
+                        firstThumb = false;
+                        getFullPhoto(photo);
+                    }
+                }
+            }
+        };
+    }
+
+    private Observable<List<MetadataHolder>> _getObservable(final String searchTag) {
+        return Observable.defer(new Func0<Observable<List<MetadataHolder>>>() {
+            @Override
+            public Observable<List<MetadataHolder>> call() {
+                return Observable.just(getMetadata(searchTag));
+            }
+        });
+    }
+
+    private List<MetadataHolder> getMetadata(final String tag) {
+
+        return FlickrManager.searchImagesByTag(getActivity(), tag);
     }
 
     public static final int META = 1;
@@ -143,4 +206,6 @@ public class MyListFragment extends android.app.Fragment {
             super.handleMessage(msg);
         }
     }
+    
+    
 }

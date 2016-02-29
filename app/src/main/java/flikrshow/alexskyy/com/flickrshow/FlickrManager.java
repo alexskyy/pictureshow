@@ -8,7 +8,6 @@ import android.os.Message;
 import android.util.Log;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -112,7 +111,7 @@ public class FlickrManager {
 
     }
 
-    public static List<MetadataHolder> searchImagesByTag(Handler uih, Context ctx, String tag) {
+    public static List<MetadataHolder> searchImagesByTag(Context ctx, String tag) {
         String url = createURL(FLICKR_PHOTOS_SEARCH_ID, tag);
         List<MetadataHolder> tmp = new ArrayList<>();
         String jsonString = null;
@@ -121,26 +120,28 @@ public class FlickrManager {
                 ByteArrayOutputStream baos = URLConnector.readBytes(url);
                 jsonString = baos.toString();
             }
-            try {
-                JSONObject root = new JSONObject(jsonString.replace("jsonFlickrApi(", "").replace(")", ""));
-                JSONObject photos = root.getJSONObject("photos");
-                JSONArray imageJSONArray = photos.getJSONArray("photo");
-                for (int i = 0; i < imageJSONArray.length(); i++) {
-                    JSONObject item = imageJSONArray.getJSONObject(i);
-                    MetadataHolder imgCon = new MetadataHolder(item.getString("id"), item.getString("owner"), item.getString("secret"), item.getString("server"),
-                            item.getString("farm"), item.getString("title"));
-                    tmp.add(imgCon);
-                }
-                Message msg = Message.obtain(uih, 1);
-                msg.obj = tmp;
-                uih.sendMessage(msg);
-            } catch (JSONException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+            JSONObject root = new JSONObject(jsonString.replace("jsonFlickrApi(", "").replace(")", ""));
+            JSONObject photos = root.getJSONObject("photos");
+            JSONArray imageJSONArray = photos.getJSONArray("photo");
+            for (int i = 0; i < imageJSONArray.length(); i++) {
+                JSONObject item = imageJSONArray.getJSONObject(i);
+                MetadataHolder imgCon = new MetadataHolder(item.getString("id"), item.getString("owner"), item.getString("secret"), item.getString("server"),
+                        item.getString("farm"), item.getString("title"));
+                tmp.add(imgCon);
             }
-        } catch (NullPointerException nue) {
-            nue.printStackTrace();
+        }catch (Exception e) {
+            e.printStackTrace();
         }
+
+        return tmp;
+    }
+
+    public static List<MetadataHolder> searchImagesByTag(Handler uih, Context ctx, String tag) {
+        List<MetadataHolder> tmp = searchImagesByTag(ctx, tag);
+
+        Message msg = Message.obtain(uih, 1);
+        msg.obj = tmp;
+        uih.sendMessage(msg);
 
         return tmp;
     }
