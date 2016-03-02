@@ -31,7 +31,7 @@ public class FlickrManager {
     private static final int NUMBER_OF_PHOTOS = 20;
 
     //You can set here your API_KEY
-    private static final String APIKEY_SEARCH_STRING = "&api_key=<your_key_here>";
+    private static final String APIKEY_SEARCH_STRING = "&api_key=<your-key-here>";
 
     private static final String TAGS_STRING = "&tags=";
     private static final String PHOTO_ID_STRING = "&photo_id=";
@@ -73,7 +73,7 @@ public class FlickrManager {
         return bm;
     }
 
-    private static Bitmap getThumbnail(MetadataHolder photoHolder) {
+    public static Bitmap getThumbnail(MetadataHolder photoHolder) {
         Bitmap bm = null;
         try {
             URL aURL = new URL(photoHolder.getThumbURL());
@@ -108,7 +108,6 @@ public class FlickrManager {
                 uih.sendMessage(msg);
             }
         }
-
     }
 
     public static List<MetadataHolder> searchImagesByTag(Context ctx, String tag) {
@@ -125,8 +124,14 @@ public class FlickrManager {
             JSONArray imageJSONArray = photos.getJSONArray("photo");
             for (int i = 0; i < imageJSONArray.length(); i++) {
                 JSONObject item = imageJSONArray.getJSONObject(i);
-                MetadataHolder imgCon = new MetadataHolder(item.getString("id"), item.getString("owner"), item.getString("secret"), item.getString("server"),
-                        item.getString("farm"), item.getString("title"));
+                MetadataHolder imgCon =
+                        new MetadataHolder(
+                                item.getString("id"),
+                                item.getString("owner"),
+                                item.getString("secret"),
+                                item.getString("server"),
+                                item.getString("farm"),
+                                item.getString("title"));
                 tmp.add(imgCon);
             }
         }catch (Exception e) {
